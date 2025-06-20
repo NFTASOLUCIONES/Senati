@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control de gastos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --azul-claro: #e3f0ff;
+      --azul: #007aff;
+      --azul-oscuro: #003366;
+      --blanco: #fff;
+      --gris: #f5f6fa;
+      --sombra: 0 4px 24px rgba(0, 122, 255, 0.08);
+      --borde: #e0e6ed;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--azul-claro);
+      margin: 0;
+      min-height: 100vh;
+      color: var(--azul-oscuro);
+    }
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      background: var(--blanco);
+      border-radius: 24px;
+      box-shadow: var(--sombra);
+      padding: 32px 24px 24px 24px;
+      animation: fadeIn 1s;
+    }
+    h1 {
+      text-align: center;
+      font-weight: 600;
+      color: var(--azul);
+      margin-bottom: 24px;
+      letter-spacing: 1px;
+    }
+    .flex {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .card {
+      background: var(--gris);
+      border-radius: 16px;
+      box-shadow: var(--sombra);
+      padding: 24px;
+      flex: 1 1 250px;
+      min-width: 250px;
+      margin-bottom: 24px;
+      transition: transform 0.2s;
+      border: 1px solid var(--borde);
+    }
+    .card:hover {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 8px 32px rgba(0, 122, 255, 0.15);
+    }
+    label {
+      font-weight: 600;
+      color: var(--azul-oscuro);
+      margin-bottom: 4px;
+      display: block;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--borde);
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 1em;
+      background: var(--blanco);
+      transition: border 0.2s;
+    }
+    input:focus, textarea:focus {
+      border: 1.5px solid var(--azul);
+      outline: none;
+    }
+    button {
+      background: var(--azul);
+      color: var(--blanco);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-weight: 600;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 122, 255, 0.08);
+    }
+    button:hover {
+      background: #005ecb;
+      transform: scale(1.04);
+    }
+    .saldo {
+      font-size: 2.2em;
+      font-weight: 600;
+      color: var(--azul);
+      margin-bottom: 8px;
+      animation: saldoAnim 1s;
+    }
+    .gastos {
+      font-size: 1.4em;
+      color: #ff3b30;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .ingresos {
+      font-size: 1.4em;
+      color: #34c759;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .list {
+      max-height: 180px;
+      overflow-y: auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .list li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--borde);
+      font-size: 1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeInUp 0.5s;
+    }
+    .list li:last-child {
+      border-bottom: none;
+    }
+    .reminder {
+      background: #eaf6ff;
+      border-left: 4px solid var(--azul);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 0.98em;
+      animation: fadeInUp 0.5s;
+    }
+    .delete-btn {
+      background: #ff3b30;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.9em;
+      margin-left: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .delete-btn:hover {
+      background: #c1271a;
+    }
+    @media (max-width: 900px) {
+      .flex { flex-direction: column; gap: 0; }
+      .container { padding: 16px 4px; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(40px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+    @keyframes saldoAnim {
+      0% { color: #fff; }
+      100% { color: var(--azul);}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Control de gastos Personales</h1>
+    <div class="flex">
+      <div class="card">
+        <div class="saldo" id="saldoActual">S/ 0.00</div>
+        <div class="gastos">Gastos: <span id="gastosTotales">S/ 0.00</span></div>
+        <div class="ingresos">Ingresos: <span id="ingresosTotales">S/ 0.00</span></div>
+      </div>
+      <div class="card">
+        <form id="formIngreso">
+          <label>Registrar Ingreso</label>
+          <input type="number" min="0" step="0.01" id="montoIngreso" placeholder="Monto en S/" required>
+          <input type="text" id="descIngreso" placeholder="Descripción (opcional)">
+          <button type="submit">Agregar Ingreso</button>
+        </form>
+        <ul class="list" id="listaIngresos"></ul>
+      </div>
+      <div class="card">
+        <form id="formGasto">
+          <label>Registrar Gasto</label>
+          <input type="number" min="0" step="0.01" id="montoGasto" placeholder="Monto en S/" required>
+          <input type="text" id="descGasto" placeholder="Descripción (opcional)">
+          <button type="submit">Agregar Gasto</button>
+        </form>
+        <ul class="list" id="listaGastos"></ul>
+      </div>
+    </div>
+    <div class="flex">
+      <div class="card" style="flex:2">
+        <h3 style="color:var(--azul)">Gráfico de Gastos</h3>
+        <canvas id="graficoGastos" height="120"></canvas>
+      </div>
+      <div class="card" style="flex:1">
+        <form id="formRecordatorio">
+          <label>Nuevo Recordatorio de Pago</label>
+          <input type="date" id="fechaRecordatorio" required>
+          <input type="time" id="horaRecordatorio" required>
+          <input type="number" min="0" step="0.01" id="montoRecordatorio" placeholder="Monto en S/" required>
+          <input type="text" id="descRecordatorio" placeholder="¿A quién debes?">
+          <textarea id="detalleRecordatorio" rows="2" placeholder="Descripción (opcional)"></textarea>
+          <button type="submit">Agregar Recordatorio</button>
+        </form>
+        <div id="listaRecordatorios"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // --- Utilidades de almacenamiento local ---
+    function guardarDatos() {
+      localStorage.setItem('ingresos', JSON.stringify(ingresos));
+      localStorage.setItem('gastos', JSON.stringify(gastos));
+      localStorage.setItem('recordatorios', JSON.stringify(recordatorios));
+    }
+    function cargarDatos() {
+      ingresos = JSON.parse(localStorage.getItem('ingresos') || '[]');
+      gastos = JSON.parse(localStorage.getItem('gastos') || '[]');
+      recordatorios = JSON.parse(localStorage.getItem('recordatorios') || '[]');
+    }
+
+    // --- Datos en memoria ---
+    let ingresos = [];
+    let gastos = [];
+    let recordatorios = [];
+
+    // --- Utilidades ---
+    function formatoSoles(n) {
+      return "S/ " + Number(n).toLocaleString("es-PE", {minimumFractionDigits:2});
+    }
+
+    // --- Actualizar saldos y listas ---
+    function actualizarVista() {
+      // Saldos
+      const totalIngresos = ingresos.reduce((a,b)=>a+b.monto,0);
+      const totalGastos = gastos.reduce((a,b)=>a+b.monto,0);
+      document.getElementById('saldoActual').textContent = formatoSoles(totalIngresos-totalGastos);
+      document.getElementById('gastosTotales').textContent = formatoSoles(totalGastos);
+      document.getElementById('ingresosTotales').textContent = formatoSoles(totalIngresos);
+
+      // Lista ingresos
+      let listaIngresos = document.getElementById('listaIngresos');
+      listaIngresos.innerHTML = '';
+      ingresos.slice().reverse().forEach((ing, idx) => {
+        let li = document.createElement('li');
+        li.innerHTML = `<span>${formatoSoles(ing.monto)} ${ing.desc?'- '+ing.desc:''}</span>
+        <button class="delete-btn" onclick="eliminarIngreso(${ing.id})">✕</button>`;
+        listaIngresos.appendChild(li);
+      });
+
+      // Lista gastos
+      let listaGastos = document.getElementById('listaGastos');
+      listaGastos.innerHTML = '';
+      gastos.slice().reverse().forEach((g, idx) => {
+        let li = document.createElement('li');
+        li.innerHTML = `<span>${formatoSoles(g.monto)} ${g.desc?'- '+g.desc:''}</span>
+        <button class="delete-btn" onclick="eliminarGasto(${g.id})">✕</button>`;
+        listaGastos.appendChild(li);
+      });
+
+      // Lista recordatorios
+      let listaRecordatorios = document.getElementById('listaRecordatorios');
+      listaRecordatorios.innerHTML = '';
+      recordatorios.slice().reverse().forEach((r, idx) => {
+        let div = document.createElement('div');
+        div.className = 'reminder';
+        div.innerHTML = `<b>${r.fecha} ${r.hora}</b> - <span style="color:var(--azul)">${formatoSoles(r.monto)}</span><br>
+        <b>Deuda:</b> ${r.desc? r.desc : 'Sin destinatario'}<br>
+        <span style="font-size:0.95em">${r.detalle? r.detalle : ''}</span>
+        <button class="delete-btn" onclick="eliminarRecordatorio(${r.id})">✕</button>`;
+        listaRecordatorios.appendChild(div);
+      });
+
+      actualizarGrafico();
+      guardarDatos();
+    }
+
+    // --- Formularios ---
+    document.getElementById('formIngreso').onsubmit = function(e){
+      e.preventDefault();
+      let monto = parseFloat(document.getElementById('montoIngreso').value);
+      let desc = document.getElementById('descIngreso').value;
+      if(monto>0){
+        ingresos.push({id:Date.now(), monto, desc});
+        document.getElementById('formIngreso').reset();
+        actualizarVista();
+      }
+    };
+    document.getElementById('formGasto').onsubmit = function(e){
+      e.preventDefault();
+      let monto = parseFloat(document.getElementById('montoGasto').value);
+      let desc = document.getElementById('descGasto').value;
+      if(monto>0){
+        gastos.push({id:Date.now(), monto, desc});
+        document.getElementById('formGasto').reset();
+        actualizarVista();
+      }
+    };
+    document.getElementById('formRecordatorio').onsubmit = function(e){
+      e.preventDefault();
+      let fecha = document.getElementById('fechaRecordatorio').value;
+      let hora = document.getElementById('horaRecordatorio').value;
+      let monto = parseFloat(document.getElementById('montoRecordatorio').value);
+      let desc = document.getElementById('descRecordatorio').value;
+      let detalle = document.getElementById('detalleRecordatorio').value;
+      if(fecha && hora && monto>0){
+        recordatorios.push({id:Date.now(), fecha, hora, monto, desc, detalle});
+        document.getElementById('formRecordatorio').reset();
+        actualizarVista();
+      }
+    };
+
+    // --- Eliminar ---
+    function eliminarIngreso(id){
+      ingresos = ingresos.filter(i=>i.id!==id);
+      actualizarVista();
+    }
+    function eliminarGasto(id){
+      gastos = gastos.filter(g=>g.id!==id);
+      actualizarVista();
+    }
+    function eliminarRecordatorio(id){
+      recordatorios = recordatorios.filter(r=>r.id!==id);
+      actualizarVista();
+    }
+    window.eliminarIngreso = eliminarIngreso;
+    window.eliminarGasto = eliminarGasto;
+    window.eliminarRecordatorio = eliminarRecordatorio;
+
+    // --- Gráfico de gastos ---
+    let chart;
+    function actualizarGrafico(){
+      let ctx = document.getElementById('graficoGastos').getContext('2d');
+      let categorias = {};
+      gastos.forEach(g=>{
+        let cat = g.desc || 'Sin descripción';
+        categorias[cat] = (categorias[cat]||0) + g.monto;
+      });
+      let labels = Object.keys(categorias);
+      let data = Object.values(categorias);
+
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [
+              '#007aff','#5ac8fa','#34aadc','#5856d6','#0a84ff','#64d2ff','#30b0c7','#b2d5f7'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display: true, position: 'bottom', labels: { color: '#003366', font: {size:14} } }
+          },
+          animation: { animateScale: true }
+        }
+      });
+    }
+
+    // --- Inicializar ---
+    cargarDatos();
+    actualizarVista();
+  </script>
+</body>
+</html>
