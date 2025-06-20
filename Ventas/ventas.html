@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f9;
+        }
+        .receipt {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Productos Disponibles</h1>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar por nombre o código">
+            <button id="searchButton">Buscar</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Nombre</th>
+                    <th>Precio (S/)</th>
+                    <th>Cantidad</th>
+                    <th>Seleccionar</th>
+                </tr>
+            </thead>
+            <tbody id="productTable">
+                <!-- Los productos se renderizan aquí -->
+            </tbody>
+        </table>
+        <div class="actions">
+            <button id="generateReceipt" disabled>Vender</button>
+        </div>
+        <div id="receipt" class="receipt" style="display: none;">
+            <h2>Boleta</h2>
+            <p id="receiptDetails"></p>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script>
+        // Cargar productos desde localStorage
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+        const productTable = document.getElementById('productTable');
+        const generateReceiptButton = document.getElementById('generateReceipt');
+        const receipt = document.getElementById('receipt');
+        const receiptDetails = document.getElementById('receiptDetails');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        let selectedProducts = [];
+
+        // Renderizar productos
+        const renderProducts = (filteredProducts = products) => {
+            productTable.innerHTML = '';
+            filteredProducts.forEach((product, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.code}</td>
+                    <td>${product.name}</td>
+                    <td>S/${product.price.toFixed(2)}</td>
+                    <td>${product.quantity}</td>
+                    <td><input type="checkbox" onchange="toggleProductSelection(${index})"></td>
+                `;
+                productTable.appendChild(row);
+            });
+        };
+
+        // Seleccionar o deseleccionar productos
+        const toggleProductSelection = (index) => {
+            const product = products[index];
+            if (selectedProducts.includes(product)) {
+                selectedProducts = selectedProducts.filter(p => p !== product);
+            } else {
+                selectedProducts.push(product);
+            }
+            generateReceiptButton.disabled = selectedProducts.length === 0;
+        };
+
+        // Buscar productos
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.toLowerCase().trim();
+            const filteredProducts = products.filter(product =>
+                product.name.toLowerCase().includes(query) || product.code.includes(query)
+            );
+            renderProducts(filteredProducts);
+        });
+
+        // Generar boleta
+        generateReceiptButton.addEventListener('click', () => {
+            const now = new Date();
+            const userName = prompt('Ingrese su nombre:');
+            if (!userName) {
+                alert('Debe ingresar un nombre para generar la boleta.');
+                return;
+            }
+
+            let totalAmount = 0;
+            let receiptContent = `Nombre del Cliente: ${userName}\nFecha: ${now.toLocaleDateString()}\nHora: ${now.toLocaleTimeString()}\n\nProductos:\n`;
+
+            selectedProducts.forEach(product => {
+                if (product.quantity > 0) {
+                    product.quantity -= 1;
+                    totalAmount += product.price;
+                    receiptContent += `- ${product.name} (Código: ${product.code}) - S/${product.price.toFixed(2)}\n`;
+                } else {
+                    alert(`No hay suficiente stock para el producto: ${product.name}`);
+                }
+            });
+
+            receiptContent += `\nMonto Total: S/${totalAmount.toFixed(2)}`;
+            receiptDetails.innerHTML = receiptContent.replace(/\n/g, '<br>');
+            receipt.style.display = 'block';
+
+            // Guardar cambios en localStorage
+            localStorage.setItem('products', JSON.stringify(products));
+
+            // Descargar boleta como PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(receiptContent, 10, 10);
+            doc.save(`Boleta_${now.toLocaleDateString()}.pdf`);
+
+            // Limpiar selección
+            selectedProducts = [];
+            generateReceiptButton.disabled = true;
+            renderProducts();
+        });
+
+        // Renderizar productos al cargar la página
+        renderProducts();
+    </script>
+</body>
+</html>

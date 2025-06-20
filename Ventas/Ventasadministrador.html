@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Ventas</title>
+    <link rel="stylesheet" href="Ventas administrador.html">
+    <style>
+        /* Estilo minimalista */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        form, .search-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .actions button {
+            margin-left: 5px;
+        }
+        .total-counter {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        .extra-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .extra-buttons button {
+            flex: 1;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sistema de Ventas </h1>
+        <div class="extra-buttons">
+            <button onclick="window.location.href='ventas.html'">Ir a Ventas</button>
+            <button onclick="window.location.href='reporte.html'">Ir a Reportes</button>
+        </div>
+        <form id="productForm">
+            <input type="text" id="productName" placeholder="Nombre del Producto" required>
+            <input type="number" id="productPrice" placeholder="Precio" required>
+            <input type="number" id="productQuantity" placeholder="Cantidad" required>
+            <button type="submit">Añadir Producto</button>
+        </form>
+        <h2>Buscar Producto</h2>
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar por código de 8 dígitos">
+            <button id="searchButton">Buscar</button>
+        </div>
+        <ul id="searchResults"></ul>
+        <h2>Productos</h2>
+        <ul id="productList"></ul>
+        <div class="total-counter">
+            Total de productos: <span id="totalQuantity">0</span>
+        </div>
+    </div>
+    <script>
+        // Referencias a elementos del DOM
+        const productForm = document.getElementById('productForm');
+        const productList = document.getElementById('productList');
+        const totalQuantity = document.getElementById('totalQuantity');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const searchResults = document.getElementById('searchResults');
+
+        // Cargar productos desde localStorage
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+
+        // Generar un código único de 8 dígitos
+        function generateProductCode() {
+            return Math.floor(10000000 + Math.random() * 90000000).toString();
+        }
+
+        // Actualizar la lista de productos
+        function updateProductList() {
+            productList.innerHTML = '';
+            let total = 0;
+
+            products.forEach((product, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>
+                        <strong>${product.name}</strong> (Código: ${product.code}) - 
+                        Precio: S/${product.price.toFixed(2)} - 
+                        Cantidad: ${product.quantity}
+                    </span>
+                    <div class="actions">
+                        <button onclick="updateQuantity(${index}, 1)">+1</button>
+                        <button onclick="updateQuantity(${index}, -1)">-1</button>
+                        <button onclick="deleteProduct(${index})">Eliminar</button>
+                    </div>
+                `;
+                productList.appendChild(li);
+                total += product.quantity;
+            });
+
+            totalQuantity.textContent = total;
+
+            // Guardar productos en localStorage
+            localStorage.setItem('products', JSON.stringify(products));
+        }
+
+        // Añadir producto
+        productForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('productName').value.trim();
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+
+            if (name && price > 0 && quantity > 0) {
+                const code = generateProductCode();
+                products.push({ code, name, price, quantity });
+                updateProductList();
+                productForm.reset();
+            } else {
+                alert('Por favor, ingresa valores válidos.');
+            }
+        });
+
+        // Actualizar cantidad
+        function updateQuantity(index, change) {
+            products[index].quantity += change;
+            if (products[index].quantity < 0) products[index].quantity = 0;
+            updateProductList();
+        }
+
+        // Eliminar producto
+        function deleteProduct(index) {
+            products.splice(index, 1);
+            updateProductList();
+        }
+
+        // Buscar producto
+        searchButton.addEventListener('click', () => {
+            const query = searchInput.value.trim();
+            searchResults.innerHTML = '';
+
+            if (query) {
+                const filteredProducts = products.filter(product =>
+                    product.code === query
+                );
+
+                if (filteredProducts.length > 0) {
+                    filteredProducts.forEach(product => {
+                        const li = document.createElement('li');
+                        li.textContent = `Nombre: ${product.name}, Código: ${product.code}, Precio: S/${product.price.toFixed(2)}`;
+                        searchResults.appendChild(li);
+                    });
+                } else {
+                    searchResults.innerHTML = '<li>No se encontraron productos.</li>';
+                }
+            } else {
+                searchResults.innerHTML = '<li>Por favor, ingresa un código válido.</li>';
+            }
+        });
+
+        // Inicializar la lista de productos
+        updateProductList();
+    </script>
+</body>
+</html>

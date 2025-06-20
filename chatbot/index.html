@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codec-48</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(120deg, #232526 0%, #414345 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .chat-container {
+            width: 420px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-header {
+            background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%);
+            color: #fff;
+            padding: 18px;
+            text-align: center;
+            font-size: 1.3em;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        .chat-box {
+            flex-grow: 1;
+            padding: 22px;
+            overflow-y: auto;
+            max-height: 340px;
+            border-bottom: 1px solid #eee;
+            background: #f4faff;
+        }
+        .chat-message {
+            margin-bottom: 12px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-break: break-word;
+            font-size: 1em;
+            box-shadow: 0 2px 6px rgba(60, 60, 60, 0.04);
+            transition: background 0.2s;
+        }
+        .user-message {
+            background: linear-gradient(90deg, #b6e0fe 0%, #e3f0ff 100%);
+            color: #0a2540;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background: linear-gradient(90deg, #232526 0%, #2c5364 100%);
+            color: #fff;
+            align-self: flex-start;
+        }
+        .chat-input {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #eee;
+            background: #e3f0ff;
+        }
+        .chat-input input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #b6e0fe;
+            border-radius: 7px;
+            margin-right: 12px;
+            font-size: 1em;
+            outline: none;
+            background: #f4faff;
+            color: #0a2540;
+            transition: border 0.2s;
+        }
+        .chat-input input[type="text"]:focus {
+            border: 1.5px solid #2c5364;
+        }
+        .chat-input button {
+            background: linear-gradient(90deg, #0f2027 0%, #2c5364 100%);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .chat-input button:hover {
+            background: linear-gradient(90deg, #2c5364 0%, #0f2027 100%);
+        }
+        .bot-link {
+            color: #2196f3;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .highlight {
+            color: #2196f3;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            Codec-48
+        </div>
+        <div class="chat-box" id="chatBox">
+            <div class="chat-message bot-message">¡Hola! Soy Codec-48, un asistente virtual en fase beta. ¿En qué puedo ayudarte hoy?</div>
+        </div>
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="Escribe tu mensaje...">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chatBox');
+        const userInput = document.getElementById('userInput');
+
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message');
+            messageDiv.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
+            messageDiv.innerHTML = message;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Normaliza texto quitando tildes y caracteres especiales
+        function normalizar(texto) {
+            return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        }
+
+        // Función para detectar y resolver operaciones matemáticas simples
+        function esOperacionMatematica(texto) {
+            return /^[\d\s\+\-\*\/\.\(\),]+$/.test(texto.replace(',', '.'));
+        }
+
+        function resolverOperacion(texto) {
+            try {
+                const operacion = texto.replace(',', '.');
+                // eslint-disable-next-line no-eval
+                const resultado = eval(operacion);
+                if (isNaN(resultado)) return "No pude calcular el resultado.";
+                return `El resultado es: <span class="highlight">${resultado}</span>`;
+            } catch {
+                return "No pude calcular el resultado.";
+            }
+        }
+
+        // Función para buscar en Wikipedia (historia y datos generales)
+        async function buscarEnWikipedia(pregunta) {
+            const url = `https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pregunta)}`;
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (data.extract) {
+                    return data.extract;
+                } else {
+                    return null;
+                }
+            } catch {
+                return null;
+            }
+        }
+
+        // Función para buscar en Google (enlace)
+        function enlaceGoogle(pregunta) {
+            const url = `https://www.google.com/search?q=${encodeURIComponent(pregunta)}`;
+            return `<a class="bot-link" href="${url}" target="_blank">Buscar en Google</a>`;
+        }
+
+        // Función para obtener el clima actual de Ciudad de México
+        async function obtenerClima() {
+            try {
+                const lat = 19.4326;
+                const lon = -99.1332;
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (data.current_weather) {
+                    const temp = data.current_weather.temperature;
+                    const wind = data.current_weather.windspeed;
+                    return `El clima actual en <span class="highlight">Ciudad de México</span> es de <span class="highlight">${temp}°C</span>, viento de <span class="highlight">${wind} km/h</span>.`;
+                } else {
+                    return "No pude obtener el clima en este momento.";
+                }
+            } catch {
+                return "Hubo un error al consultar el clima.";
+            }
+        }
+
+        // Función para obtener el día, mes o año actual
+        function obtenerFechaInfo(tipo) {
+            const fecha = new Date();
+            const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+            const dias = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+            if (tipo === "dia") return `Hoy es <span class="highlight">${dias[fecha.getDay()]}</span>.`;
+            if (tipo === "mes") return `Estamos en el mes de <span class="highlight">${meses[fecha.getMonth()]}</span>.`;
+            if (tipo === "año") return `El año actual es <span class="highlight">${fecha.getFullYear()}</span>.`;
+            return "";
+        }
+
+        // Respuestas rápidas y funciones avanzadas con tolerancia ortográfica
+        async function getBotResponse(userMessage) {
+            const msgNorm = normalizar(userMessage);
+
+            // Saludos y frases comunes
+            if (msgNorm.match(/\b(hola|ola|holi|saludos|buenos dias|buenas tardes|buenas noches)\b/)) {
+                return "¡Hola! ¿Cómo estás hoy?";
+            } else if (msgNorm.match(/como estas|que tal|como te va|todo bien/)) {
+                return "¡Estoy listo para ayudarte! ¿En qué puedo asistirte?";
+            } else if (msgNorm.match(/que puedes hacer|que sabes hacer|para que sirves/)) {
+                return "Puedo responder preguntas, hacer cálculos, decirte la hora, el clima, el día, el mes, el año, buscar información histórica y ayudarte a buscar en Google.";
+            } else if (msgNorm.match(/tu nombre|como te llamas/)) {
+                return "Puedes llamarme Codec-48, tu asistente avanzado.";
+            } else if (msgNorm.match(/gracias|muchas gracias|te agradezco/)) {
+                return "¡De nada! ¿Hay algo más en lo que te pueda ayudar?";
+            } else if (msgNorm.match(/adios|hasta luego|nos vemos|bye/)) {
+                return "¡Hasta pronto! Que tengas un excelente día.";
+            } else if (msgNorm.includes('cajamarca')) {
+                return "Cajamarca es una ciudad peruana famosa por su historia y paisajes. ¿Quieres saber algo específico?";
+            } else if (msgNorm.match(/fecha actual|que fecha es/)) {
+                const today = new Date();
+                return `Hoy es <span class="highlight">${today.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>.`;
+            } else if (msgNorm.match(/hora actual|que hora es|dime la hora|hora por favor/)) {
+                const now = new Date();
+                return `Son las <span class="highlight">${now.toLocaleTimeString('es-ES')}</span>.`;
+            } else if (msgNorm.match(/que dia es|dia actual/)) {
+                return obtenerFechaInfo("dia");
+            } else if (msgNorm.match(/que mes es|mes actual/)) {
+                return obtenerFechaInfo("mes");
+            } else if (msgNorm.match(/que año es|año actual|en que año estamos/)) {
+                return obtenerFechaInfo("año");
+            } else if (msgNorm.match(/clima|temperatura|va a llover|como esta el clima/)) {
+                return await obtenerClima();
+            }
+
+            // Operaciones matemáticas
+            if (esOperacionMatematica(userMessage)) {
+                return resolverOperacion(userMessage);
+            }
+
+            // Preguntas de historia o datos generales (Wikipedia)
+            if (
+                msgNorm.match(/historia de|quien fue|que es|cuando fue|donde esta|por que|para que sirve/)
+            ) {
+                // Extraer el tema principal de la pregunta
+                let tema = userMessage.replace(/(historia de|quien fue|qué es|que es|cuando fue|donde esta|por que|para que sirve)/i, '').trim();
+                if (!tema) tema = userMessage;
+                const wiki = await buscarEnWikipedia(tema);
+                if (wiki) return wiki;
+            }
+
+            // Si no se encontró respuesta, sugiere buscar en Google
+            return `No tengo una respuesta directa, pero puedes ${enlaceGoogle(userMessage)}.`;
+        }
+
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+
+            appendMessage('user', message);
+            userInput.value = '';
+            setTimeout(async () => {
+                appendMessage('bot', "Pensando...");
+                const botResponse = await getBotResponse(message);
+                chatBox.lastChild.innerHTML = "Chatbot: " + botResponse;
+            }, 400);
+        }
+
+        userInput.addEventListener('keypress', function(event) {
+            if(event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

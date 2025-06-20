@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Ganancias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        .summary {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f4f4f9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Reporte de Ganancias</h1>
+        <div class="summary" id="totalRevenue">
+            Total Recaudado: S/0.00
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Código</th>
+                    <th>Precio Unitario (S/)</th>
+                    <th>Cantidad Vendida</th>
+                    <th>Total (S/)</th>
+                </tr>
+            </thead>
+            <tbody id="reportTable">
+                <!-- Los datos del reporte se renderizan aquí -->
+            </tbody>
+        </table>
+        <h2>Servicios Técnicos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Modelo</th>
+                    <th>Cliente</th>
+                    <th>Monto Cobrado (S/)</th>
+                </tr>
+            </thead>
+            <tbody id="serviceTable">
+                <!-- Los datos de servicios se renderizan aquí -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        // Cargar datos de productos y servicios desde localStorage
+        const products = JSON.parse(localStorage.getItem('products')) || [];
+        const services = JSON.parse(localStorage.getItem('services')) || [];
+
+        // Referencias al DOM
+        const reportTable = document.getElementById('reportTable');
+        const serviceTable = document.getElementById('serviceTable');
+        const totalRevenue = document.getElementById('totalRevenue');
+
+        // Calcular y renderizar el reporte
+        const renderReport = () => {
+            let totalEarnings = 0;
+
+            // Limpiar la tabla de productos
+            reportTable.innerHTML = '';
+
+            // Recorrer los productos y calcular las ganancias
+            products.forEach(product => {
+                const total = product.price * product.quantity;
+                totalEarnings += total;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.name}</td>
+                    <td>${product.code}</td>
+                    <td>S/${product.price.toFixed(2)}</td>
+                    <td>${product.quantity}</td>
+                    <td>S/${total.toFixed(2)}</td>
+                `;
+                reportTable.appendChild(row);
+            });
+
+            // Limpiar la tabla de servicios
+            serviceTable.innerHTML = '';
+
+            // Recorrer los servicios y calcular las ganancias
+            services.forEach(service => {
+                totalEarnings += service.amount;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${service.description}</td>
+                    <td>${service.model}</td>
+                    <td>${service.clientName}</td>
+                    <td>S/${service.amount.toFixed(2)}</td>
+                `;
+                serviceTable.appendChild(row);
+            });
+
+            // Mostrar el total recaudado
+            totalRevenue.textContent = `Total Recaudado: S/${totalEarnings.toFixed(2)}`;
+        };
+
+        // Inicializar el reporte
+        renderReport();
+    </script>
+</body>
+</html>
